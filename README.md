@@ -1,53 +1,50 @@
-# **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+# Finding Lane Lines on the Road
 
-Overview
+The goals / steps of this project are the following:
+* Make a pipeline that finds lane lines on the road
+* Reflect on my work in a written report
+
+The final result can be seen [here](http://htmlpreview.github.io/?https://github.com/mateuszmrozewski/CarND-LaneLines-P1/blob/master/P1.html).
+
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+### Reflection
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
+### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
+The starting point of the pipeline where the functions already
+provided in the notebook. Using them in the correct order gave
+a good enough starting point for the final implementation. After
+playing around with the test images and videos (especially the
+  challenge one) the final shape of my pipeline is:
 
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
+1. color_range - this step filters out white and yellow colors
+   using the HSV color model and mixes the result with the original image using the weighted_img function. This step allows me to enhance the lines in difficult situations like in the challenge video (yellow line on a light colored tarmac).
+1. grayscale - converts image to grayscale
+1. gaussian_blur - used to reduce noise
+1. canny - used to detect edges. After various experiment I sticked with thresholds of 80 and 120. Initially I tried more rigorous values but it didn't play well with corner cases (again, challenge video).
+1. region_of_interest - this is the moment when we can focus only on road.
+1. hough_lines - now we try to match the points to from canny output to get actual lines. Tuning these parameters seemed to be the most challenging. I am not fully convinced that my values are optimal. However they work good enough with the videos.
+1. extrapolated - this step seems to be crucial one. I first filter out lanes with slopes not matching the side of image and that are to close to be horizontal. Next I used linear regression to get the model for left and right line and then predict the values for x cooridnates that roughly match the masked region (our POV).
+1. weighted_img - apply the extrapolated lines onto the original image
 
+draw_lines was left unmodified and it just draw lines.
 
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
+### 2. Identify potential shortcomings with your current pipeline
 
-1. Describe the pipeline
+One of the shortcomings is that I discard completely lines that don't match roughly the expected slope. This might by fine in the highway situation but it should  not do that in the city. Some of the lines will be horizontal and we should see them as well.
 
-2. Identify any shortcomings
+Another shortcoming is that the estimated line is straight while it might be better to try to estimate a curve to cover bends as well.
 
-3. Suggest possible improvements
+Also filtering input lines could be improved to get rid of some short edges or marking that are not the lines themselves.
 
-We encourage using images in your writeup to demonstrate how your pipeline works.  
+### 3. Suggest possible improvements to your pipeline
 
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
+Looking at the videos, especially the challenge one, we can see that sometimes lines jump for a frame or two to a new position. One solution would be to implement memory in the process, like in the GPS systems. Current frame would be calculated based on the observations and previous frame. This way a sudden spark or reflection that would cause drawing a line in wrong position would be reduced - a line would move only a little if previous and current position differs a lot.
 
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
+To estimate position of a new line I used linear regression. Maybe with using another approach I could get better results. For example estimating a and b parameters of y=ax+b might give better results and would allow better outlier detection.
 
+Another possible improvement could be searching for almost parallel and close pair of lines. This should help to filter out the noise as well.
 
-The Project
----
-
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
-
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
-
-**Step 2:** Open the code in a Jupyter Notebook
-
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
-
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
-
-`> jupyter notebook`
-
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
-
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
-
+I also believe that spending more time on image preprocessing could allow Canny and Hough algorithms to work better.
